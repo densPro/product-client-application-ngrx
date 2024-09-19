@@ -5,8 +5,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
-
+import { Store } from '@ngrx/store';
 import { Product } from '../product.model';
+import * as fromActions from '../ngrx/actions/header.actions';
 import { ProductService } from '../product.service';
 
 @Component({
@@ -22,8 +23,10 @@ export class ProductListComponent {
   constructor(
     private productService: ProductService,
     private router: Router,
+    private store: Store
   ) {
-   
+    // Update header title
+    this.store.dispatch(fromActions.updateHeaderTitle({ title: 'Products' }));
   }
 
   ngOnInit() {

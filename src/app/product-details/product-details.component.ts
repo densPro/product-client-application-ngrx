@@ -9,11 +9,13 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { finalize, take } from 'rxjs';
+import { Store } from '@ngrx/store';
 import { MatDialog } from '@angular/material/dialog';
 
 import { Product } from '../product.model';
 import { ProductService } from '../product.service';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
+import * as fromActions from '../ngrx/actions/header.actions';
 
 @Component({
   selector: 'app-product-details',
@@ -43,13 +45,16 @@ export class ProductDetailsComponent {
     public _ngZone: NgZone,
     private router: Router,
     private dialog: MatDialog,
+    private store: Store
   ) {
     this.productForm = this.fb.group({
       name: ['', Validators.required],
       description: [''],
       price: [null, Validators.required],
     });
-    
+    this.store.dispatch(
+      fromActions.updateHeaderTitle({ title: 'Edit Product' })
+    );
   }
 
   ngOnInit(): void {
