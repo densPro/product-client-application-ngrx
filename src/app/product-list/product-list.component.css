@@ -1,0 +1,23 @@
+.product-card {
+  max-width: 400px; 
+  padding: 20px;
+  margin: 10px;
+}
+
+.product-list {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 20px;
+  justify-content: center;
+}
+
+.action-buttons {
+  justify-content: flex-end;
+}
+
+.add-button {
+  position: fixed;
+  bottom: 20px; /* Adjust as needed */
+  right: 20px; /* Adjust as needed */
+  z-index: 1000; /* Ensure it's above other content */
+}

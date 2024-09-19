@@ -1,0 +1,24 @@
+.product-card {
+  max-width: 400px; 
+  padding: 20px;
+  margin: 10px;
+}
+
+.center-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-button {
+  margin: 5px
+}
