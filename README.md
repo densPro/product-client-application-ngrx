@@ -280,3 +280,244 @@ export class ProductListComponent {
 }
 
 ```
+
+## Load Products example
+
+### 1. Create Action Types (ngrx\actions\product.actions.ts)
+
+Here we define three actions:
+
+- One for initiating the product load,
+- One for handling the success response,
+- And one for dealing with errors.
+
+```
+import { createAction, props } from '@ngrx/store';
+import { Product } from '../../product.model';
+
+export const loadProducts = createAction('[Product List] Load Products');
+export const loadProductsSuccess = createAction(
+  '[Product List] Load Products Success',
+  props<{ products: Product[] }>()
+);
+export const loadProductsFailure = createAction(
+  '[Product List] Load Products Failure',
+  props<{ error: any }>()
+);
+
+```
+
+- loadProducts initiates the process.
+- loadProductsSuccess carries the product data if successful.
+- loadProductsFailure handles any errors during the process.
+
+### 2. Create Product Reducer (ngrx\reducers\product.reducers.ts)
+
+The reducer manages the state changes based on the dispatched actions. This includes updating the product list, managing loading states, and handling errors.
+
+```
+import { createReducer, on } from '@ngrx/store';
+import { Product } from '../../product.model';
+import * as ProductActions from '../actions/product.actions';
+
+export interface ProductState {
+  products: Product[];
+  loading: boolean;
+  error: any;
+}
+
+const initialState: ProductState = {
+  products: [],
+  loading: false,
+  error: null,
+};
+
+export const productReducer = createReducer(
+  initialState,
+  on(ProductActions.loadProducts, (state) => ({
+    ...state,
+    loading: true,
+  })),
+  on(ProductActions.loadProductsSuccess, (state, { products }) => ({
+    ...state,
+    products,
+    loading: false,
+  })),
+  on(ProductActions.loadProductsFailure, (state, { error }) => ({
+    ...state,
+    error,
+    loading: false,
+  }))
+);
+
+```
+
+- The loading flag is set when the process starts, and reset when the process completes.
+- The error state is updated if there’s a failure.
+
+### 3. Create Product Selectors (ngrx\selectors\product.selectors.ts)
+
+Selectors provide an easy way to access different parts of the product state. Here, we create selectors to get the products, loading state, and any errors.
+
+```
+import { createSelector, createFeatureSelector } from '@ngrx/store';
+import { ProductState } from '../reducers/product.reducers';
+
+export const selectProductState =
+  createFeatureSelector<ProductState>('products');
+
+export const selectAllProducts = createSelector(
+  selectProductState,
+  (state: ProductState) => state.products
+);
+
+export const selectProductsLoading = createSelector(
+  selectProductState,
+  (state: ProductState) => state.loading
+);
+
+export const selectProductsError = createSelector(
+  selectProductState,
+  (state: ProductState) => state.error
+);
+
+```
+
+- selectAllProducts: Retrieves the full list of products.
+- selectProductsLoading: Retrieves the loading state.
+- selectProductsError: Retrieves any error messages.
+
+### 4. Create Product Effects (ngrx\effects\product.effects.ts)
+
+Effects handle side effects, such as API calls. Here, we use an effect to fetch products from a service and dispatch either a success or failure action.
+
+Key Concepts
+
+- Effects isolate side effects from components, allowing for more pure components that select state and dispatch - actions.
+- Effects are long-running services that listen to an observable of every action dispatched from the Store.
+- Effects filter those actions based on the type of action they are interested in. This is done by using an operator.
+- Effects perform tasks, which are synchronous or asynchronous and return a new action.
+
+```
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { inject } from '@angular/core';
+import { ProductService } from '../../product.service';
+import * as ProductActions from '../actions/product.actions';
+import { catchError, map, mergeMap } from 'rxjs/operators';
+import { of } from 'rxjs';
+
+export const loadProductsEffect = createEffect(() => {
+  const productService = inject(ProductService);
+
+  return inject(Actions).pipe(
+    ofType(ProductActions.loadProducts),
+    mergeMap(() =>
+      productService.getProducts().pipe(
+        map((products) => ProductActions.loadProductsSuccess({ products })),
+        catchError((error) =>
+          of(ProductActions.loadProductsFailure({ error }))
+        )
+      )
+    )
+  );
+}, { functional: true });
+
+```
+
+- ofType(ProductActions.loadProducts): Listens for the loadProducts action.
+- On success, it dispatches loadProductsSuccess.
+- On error, it dispatches loadProductsFailure.
+
+### 5. Update app.config.ts for NgRx integration
+
+Configure the store and effects in the app's global configuration:
+
+```
+import { ApplicationConfig, importProvidersFrom, isDevMode } from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { routes } from './app.routes';
+import { provideHttpClient } from '@angular/common/http';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { provideStore } from '@ngrx/store';
+import { headerReducer } from './ngrx/reducers/header.reducer';
+import { provideEffects } from '@ngrx/effects';
+import { loadProductsEffect } from './ngrx/effects/product.effects';
+import { productReducer } from './ngrx/reducers/product.reducers';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    importProvidersFrom(BrowserModule, BrowserAnimationsModule),
+    provideRouter(routes),
+    provideHttpClient(),
+    provideStore({
+        header: headerReducer,
+        products: productReducer,
+    }),
+    provideEffects({ loadProductsEffect }),
+    provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
+],
+};
+
+```
+
+### 6. Update product-list.component.ts to utilize selectors
+
+Here, we dispatch the action to load products and use selectors to get the loading state and products from the store:
+
+```
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+
+import { Product } from '../product.model';
+import * as fromActions from '../ngrx/actions/header.actions';
+import * as ProductActions from '../ngrx/actions/product.actions';
+import { selectAllProducts, selectProductsLoading } from '../ngrx/selectors/product.selectors';
+
+@Component({
+  selector: 'app-product-list',
+  standalone: true,
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule],
+  templateUrl: './product-list.component.html',
+  styleUrl: './product-list.component.css',
+})
+export class ProductListComponent implements OnInit {
+  products$: Observable<Product[]> | undefined;
+  loading$: Observable<boolean> | undefined;
+
+  constructor(
+    private router: Router,
+    private store: Store
+  ) {
+    // Update header title
+    this.store.dispatch(
+      fromActions.updateHeaderTitle({ title: 'Products' })
+    );
+  }
+
+  ngOnInit() {
+    // Dispatch action to load products
+    this.store.dispatch(ProductActions.loadProducts());
+
+    // Select products and loading state from the store
+    this.products$ = this.store.select(selectAllProducts);
+    this.loading$ = this.store.select(selectProductsLoading);
+  }
+
+  editProduct(id: number) {
+    this.router.navigateByUrl(`/products/${id}`);
+  }
+
+  addProduct() {
+    this.router.navigateByUrl(`/add-product`);
+  }
+}
+```

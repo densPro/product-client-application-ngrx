@@ -7,8 +7,10 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
+import { loadProductsEffect } from './ngrx/effects/product.effects';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { headerReducer } from './ngrx/reducers/header.reducer';
+import { productReducer } from './ngrx/reducers/product.reducers';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,8 +19,9 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideStore({
       header: headerReducer,
+      products: productReducer,
     }),
-    provideEffects(),
+    provideEffects({ loadProductsEffect }),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
 ],
 };
